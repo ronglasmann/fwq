@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools", "setuptools-scm", "gwerks"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,3 +22,7 @@ fwq = "fwq.cli:fwq"
 
 [tool.setuptools]
 license-files = ["LICENSE"]
+
+[tool.setuptools.dynamic]
+version = {attr = "fwq.__version__"}
+

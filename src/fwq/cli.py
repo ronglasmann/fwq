@@ -8,6 +8,7 @@ from gwerks.cli import cli, Clo
 # from fwq.worker import Worker
 
 from fwq import *
+from fwq.api import start, stop, do_next_job, do_jobs, kick_job, stats, nq, purge, peek
 
 """
 context = DockerContext(data={
