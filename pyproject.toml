@@ -4,14 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwq"
-authors = [{name = "Ron Glasmann", email = "ron.glasmann@astreanalytics.com"}]
+authors = [{name = "Ron Glasmann", email = "ron@glasmann.net"}]
 readme = "README.md"
 license = { text = "MIT" }
 dynamic = ["version"]
 dependencies = [
     "gwerks",
     "pyyaml",
-    "shortuuid",
     "greenstalk",
 ]
 
@@ -19,31 +18,7 @@ dependencies = [
 aws = ["boto3"]
 
 [project.scripts]
-#version = "aac.build_tools.version:main"
-make_worker_id = "fwq.cli:make_worker_id"
-
-fwq_run_next = "fwq:fwq_run_next"
-fwq_kick = "fwq:fwq_kick"
-fwq_stats = "fwq:fwq_stats"
-fwq_purge = "fwq:fwq_purge"
-fwq_peek = "fwq:fwq_peek"
-fwq_nq = "fwq:fwq_nq"
-fwq_start_worker = "fwq:fwq_start_worker"
-
+fwq = "fwq.cli:fwq"
 
 [tool.setuptools]
 license-files = ["LICENSE"]
-
-
-#[build-system]
-#requires = ["flit_core >=3.2,<4", "requests"]
-#build-backend = "flit_core.buildapi"
-
-
-[tool.versioneer]
-VCS = "git"
-style = "pep440-pre"
-versionfile_source = "src/fwq/_version.py"
-versionfile_build = "fwq/_version.py"
-tag_prefix = ""
-parentdir_prefix = "fwq-"
