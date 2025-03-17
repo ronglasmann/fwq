@@ -4,10 +4,11 @@ import json
 
 from gwerks.decorators import emitter
 from gwerks.cli import cli, Clo
-# from fwq.the_broker import Broker
-# from fwq.worker import Worker
+from gwerks.docker import DockerNetwork
 
-from fwq import *
+from fwq.broker import Broker
+from fwq.constants import JOB_STATE_READY
+
 from fwq.api import start, stop, do_next_job, do_jobs, kick_job, stats, nq, purge, peek
 
 """
