@@ -9,7 +9,7 @@ readme = "README.md"
 license = { text = "MIT" }
 dynamic = ["version"]
 dependencies = [
-    "gwerks",
+    "gwerks>=25.3.16",
     "pyyaml",
     "greenstalk",
 ]
