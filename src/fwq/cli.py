@@ -152,7 +152,11 @@ def cli_stats(clo: Clo):
     for_app = clo.get("for")
     broker_host = clo.get("broker")
     job_id = clo.get("id")
-    return stats(for_app, broker_host, job_id=job_id)
+    system_stats, tube_stats, job_stats = stats(for_app, broker_host, job_id=job_id)
+    print(f"{broker_host}: {system_stats}")
+    print(f"{for_app}: {tube_stats}")
+    if job_id:
+        print(f"job {job_id}: {tube_stats}")
 
 
 @emitter()

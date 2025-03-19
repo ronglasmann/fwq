@@ -90,7 +90,19 @@ class WorkQ:
     #     use_tube = make_tube_name(self._for_app, self._use_tube_name)
     #     self._client().use(use_tube)
 
-    def stats(self, for_tube=None, for_job_id=None):
+    # def all_jobs_status(self, for_state=None):
+    #     results = []
+    #     j_rows = self._db.select_active_jobs(self._beanstalk_server_id)
+    #     if j_rows is not None:
+    #         for j_row in j_rows:
+    #             job_status = self.job_status(make_sj_id(self._beanstalk_server_id, j_row['job_id']))
+    #             if job_status is not None:
+    #                 if for_state is None or job_status['job_state'] == for_state:
+    #                     results.append(job_status)
+
+        # return results
+
+    def stats(self, for_job_id=None):
         job_stats = None
         if for_job_id is not None:
             try:
@@ -98,16 +110,10 @@ class WorkQ:
             except NotFoundError:
                 print(f"job {for_job_id} not found")
 
-        tube_stats = {}
-        if for_tube is None:
-            tubes = self._client.tubes()
-            for tube_name in tubes:
-                tube_stats[tube_name] = self._client.stats_tube(tube_name)
-        else:
-            tube_name = self._for_app
-            tube_stats[tube_name] = self._client.stats_tube(tube_name)
+        tube_stats = self._client.stats_tube(self._for_app)
 
         sys_stats = self._client.stats()
+
         return sys_stats, tube_stats, job_stats
 
     def stop(self):
