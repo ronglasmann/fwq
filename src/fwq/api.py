@@ -51,7 +51,7 @@ def stats(for_app, the_broker=f"{Broker.DEFAULT_NAME}:{Broker.DEFAULT_PORT}", jo
 def nq(for_app, job_type, the_broker=f"{Broker.DEFAULT_NAME}:{Broker.DEFAULT_PORT}", job_data=None, job_name=None,
        priority=65536, delay_secs=0, ttr=60):
     the_work_q = WorkQ(for_app, the_broker)
-    the_work_q.put(job_type, job_data, job_name, priority, delay_secs, ttr)
+    return the_work_q.put(job_type, job_data, job_name, priority, delay_secs, ttr)
 
 
 def purge(for_app, the_broker=f"{Broker.DEFAULT_NAME}:{Broker.DEFAULT_PORT}", at_most=None, in_state=JOB_STATE_READY):
