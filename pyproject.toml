@@ -1,6 +1,10 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm", "gwerks"]
+requires = ["setuptools", "gwerks", "pytest"]
 build-backend = "setuptools.build_meta"
+
+#[build-system]
+#requires = ["hatchling", "gwerks", "pytest"]
+#build-backend = "hatchling.build"
 
 [project]
 name = "fwq"
@@ -9,16 +13,18 @@ readme = "README.md"
 license = { text = "MIT" }
 dynamic = ["version"]
 dependencies = [
-    "gwerks>=25.3.17",
+    "gwerks>=25.3.18",
     "pyyaml",
     "greenstalk",
+    "requests",
+    "uvicorn"
 ]
 
 [project.optional-dependencies]
 aws = ["boto3"]
 
 [project.scripts]
-fwq = "fwq.cli:fwq"
+fwq = "fwq.cli:cli_fwq"
 
 [tool.setuptools]
 license-files = ["LICENSE"]
@@ -26,3 +32,8 @@ license-files = ["LICENSE"]
 [tool.setuptools.dynamic]
 version = {attr = "fwq.__version__"}
 
+[tool.pytest.ini_options]
+testpaths = ["src-tests"]
+addopts = [
+    "--import-mode=importlib",
+]

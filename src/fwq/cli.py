@@ -1,15 +1,13 @@
+import os
 import sys
 import yaml
 import json
+import argparse
 
 from gwerks.decorators import emitter
-from gwerks.cli import cli, Clo
-from gwerks.docker import DockerNetwork
+# from gwerks.cli import cli, Clo
 
-from fwq.broker import Broker
 from fwq.constants import JOB_STATE_READY
-
-from fwq.api import start, stop, do_next_job, do_jobs, kick_job, stats, nq, purge, peek
 
 """
 context = DockerContext(data={
@@ -25,69 +23,40 @@ broker = Broker(context=context, map_to_host_port=11300)
 # CLI entry point
 # --------------------------------------------------------------------------- #
 @emitter()
-def fwq():
+def cli_fwq():
 
     _debug_traceback_limit = 1000
     sys.tracebacklimit = 0
 
+    # Create an argument parser object
+    parser = argparse.ArgumentParser(description="Fast Work Queue")
+
+    # Add arguments
+    parser.add_argument("component", help="[config | broker | job | worker]")
+    parser.add_argument("action", help="the component action")
+    parser.add_argument("-d", "--debug", help="activate debug mode", action="store_true")
+    parser.add_argument("-s", "--spec", help="component (config | job) specification")
+    parser.add_argument("-i", "--id", help="component (broker | job | worker) identifier")
+    parser.add_argument("-v", "--value", help="component value for identifier")
+    parser.add_argument("-a", "--app", help="job target application")
+    parser.add_argument("-t", "--state", help="job state")
+    parser.add_argument("-c", "--count", help="job count")
+    parser.add_argument("-w", "--wait", help="wait time in seconds", default="60")
+
+    # Parse the arguments from the command line
+    args = parser.parse_args()
+
     try:
 
-        # command line arguments and default values
-        clo = cli([
-            {   # base args
-                "action": Clo.REQUIRED,
-                "debug": None
-            },
-            {   # action start, stop
-                "name": Broker.DEFAULT_NAME
-            },
-            {   # action start
-                "port_spec": Broker.DEFAULT_PORT,
-                "host_volume": "./data",
-                "max_message_size": "65535",
-                "log_group_prefix": None,
-                "net_name": None,
-                "net_driver": DockerNetwork.DEFAULT_DRIVER,
-                "context": None
-            },
-            {  # action do_next_job, kick_job, stats, nq, purge, peek
-                "for": Clo.REQUIRED,
-                "broker": f"{Broker.DEFAULT_NAME}:{Broker.DEFAULT_PORT}",
-            },
-            {  # action do_next_job
-                "wait": "60"
-            },
-            {  # action kick_job, stats, peek
-                "id": None
-            },
-            {  # action nq
-                "job_type": Clo.REQUIRED,
-                "job_data": None,
-                "job_name": None,
-                "priority": "65536",
-                "delay_secs": "0",
-                "ttr": "60",
-            },
-            {  # action kick_job, purge, peek
-                "at_most": Clo.REQUIRED,
-                "in_state": JOB_STATE_READY,
-            }
-        ])
-        print(f"Hello!")
-
-        debug = clo.get("debug") == "True"
-        if debug:
+        if args.debug:
             sys.tracebacklimit = _debug_traceback_limit
 
-        action = clo.get("action")
+        action = f"{args.component}_{args.action}"
         cli_action = f"cli_{action}"
 
         print(f"---------------------------------------------------------------------------------")
 
-        if not action:
-            raise Exception("--action | -a is required")
-
-        globals()[cli_action](clo)
+        globals()[cli_action](args)
 
         print(f"---------------------------------------------------------------------------------")
 
@@ -103,89 +72,139 @@ def fwq():
 
 
 @emitter()
-def cli_start(clo: Clo):
-    broker_name = clo.get("name")
-    broker_port = clo.get("port_spec")
-    host_volume = clo.get("host_volume")
-    max_message_size = clo.get("max_message_size")
-    log_group_prefix = clo.get("log_group_prefix")
-    net_name = clo.get("net_name")
-    net_driver = clo.get("net_driver")
-    context_yaml_file = clo.get("context")
-    start(broker_name, broker_port, net_name, net_driver, host_volume, max_message_size,
-          log_group_prefix, context_yaml_file)
+def cli_job_kick(args):
+    from fwq.key import parser
+    from fwq.api import job_kick
+    job_count = args.count
+    nfo = parser(args.id)
+    job_kick(nfo.broker_id, nfo.app, job_id=nfo.job_id, job_count=job_count)
 
 
 @emitter()
-def cli_stop(clo: Clo):
-    broker_name = clo.get("name")
-    stop(broker_name)
+def cli_job_touch(args):
+    from fwq.key import parser
+    from fwq.api import job_touch
+    nfo = parser(args.id)
+    job_touch(nfo.broker_id, nfo.app, nfo.job_id)
 
 
 @emitter()
-def cli_do_next_job(clo: Clo):
-    for_app = clo.get("for")
-    broker_host = clo.get("broker")
-    wait_secs = int(clo.get("wait"))
-    do_next_job(for_app, broker_host, wait_secs)
+def cli_job_cancel(args):
+    from fwq.key import parser
+    from fwq.api import job_cancel
+    nfo = parser(args.id)
+    job_cancel(nfo.broker_id, nfo.app, nfo.job_id)
 
 
 @emitter()
-def cli_do_jobs(clo: Clo):
-    for_app = clo.get("for")
-    broker_host = clo.get("broker")
-    wait_secs = int(clo.get("wait"))
-    do_jobs(for_app, broker_host, wait_secs)
+def cli_job_purge(args):
+    from fwq.key import parser
+    from fwq.api import job_purge, job_purge_completed
+    older_than_secs = args.older_than
+    nfo = parser(args.id)
+    if nfo.job_id:
+        job_purge(nfo.broker_id, nfo.app, nfo.job_id)
+    else
+        job_purge_completed(nfo.broker_id, nfo.app, older_than_secs)
+
+@emitter()
+def cli_job_do_all(args):
+    from fwq.key import parser
+    from fwq.api import job_do_all
+    wait_secs = args.wait
+    nfo = parser(args.id)
+    job_do_all(nfo.broker_id, nfo.app, wait_secs)
 
 
 @emitter()
-def cli_kick_job(clo: Clo):
-    for_app = clo.get("for")
-    broker_host = clo.get("broker")
-    job_id = clo.get("id")
-    kick_count = clo.get("at_most")
-    kick_job(for_app, broker_host, job_id=job_id, kick_count=kick_count)
+def cli_job_do_next(args):
+    from fwq.key import parser
+    from fwq.api import job_do_next
+    wait_secs = args.wait
+    nfo = parser(args.id)
+    job_do_next(nfo.broker_id, nfo.app, wait_secs)
 
 
 @emitter()
-def cli_stats(clo: Clo):
-    for_app = clo.get("for")
-    broker_host = clo.get("broker")
-    job_id = clo.get("id")
-    system_stats, tube_stats, job_stats = stats(for_app, broker_host, job_id=job_id)
-    print(f"{broker_host}: {system_stats}")
-    print(f"{for_app}: {tube_stats}")
-    if job_id:
-        print(f"job {job_id}: {tube_stats}")
+def cli_job_list(args):
+    from fwq.key import parser
+    from fwq.api import job_list
+    nfo = parser(args.id)
+    job_states = None  # meaning all states
+    job_states_str = args.state
+    if job_states_str:
+        job_states = job_states_str.split(",")
+    print(f"jobs: {job_list(nfo.broker_id, nfo.app, job_states=job_states)}")
 
 
 @emitter()
-def cli_nq(clo: Clo):
-    for_app = clo.get("for")
-    broker_host = clo.get("broker")
-    job_type = clo.get("job_type")
-    job_data = clo.get("job_data")
-    job_name = clo.get("job_name")
-    priority = int(clo.get("priority"))
-    delay_secs = int(clo.get("delay_secs"))
-    ttr = int(clo.get("ttr"))
-    nq(for_app, job_type, broker_host, job_data, job_name, priority, delay_secs, ttr)
+def cli_job_get(args):
+    from fwq.key import parser
+    from fwq.api import job_get
+    nfo = parser(args.id)
+    print(f"job: {job_get(nfo.broker_id, nfo.app)}")
 
 
 @emitter()
-def cli_purge(clo: Clo):
-    for_app = clo.get("for")
-    the_broker = clo.get("broker")
-    at_most = clo.get("at_most")
-    in_state = clo.get("in_state")
-    purge(for_app, the_broker, at_most, in_state)
+def cli_job_nq(args):
+    from fwq.api import job_nq
+    job_spec = json.loads(args.spec)
+    print(f"job_id: {job_nq(job_spec)}")
 
 
 @emitter()
-def cli_peek(clo: Clo):
-    for_app = clo.get("for")
-    the_broker = clo.get("broker")
-    job_id = clo.get("id")
-    next_in_state = clo.get("in_state")
-    job = peek(for_app, the_broker, job_id, next_in_state)
-    print(yaml.dump(json.loads(job.body), allow_unicode=True, default_flow_style=False))
+def cli_broker_start(args):
+    from fwq.api import broker_start
+    print(f"broker nfo: {broker_start()}")
+    # print(f"DockerNet: {beanstalkd.get_container_name()}_{beanstalkd.get_port()}_{etcd.get_client_port()}")
+    # print(f"HostNet:   {beanstalkd.get_host_ip()}_{beanstalkd.get_port()}_{etcd.get_client_port()}")
+
+
+
+@emitter()
+def cli_broker_stop(args):
+    from fwq.api import broker_stop
+    broker_stop()
+
+
+@emitter()
+def cli_broker_add(args):
+    from fwq.api import broker_add
+    broker_id = args.id
+    print(f"brokers: {broker_add(broker_id)}")
+
+
+@emitter()
+def cli_broker_rm(args):
+    from fwq.api import broker_rm
+    broker_id = args.id
+    print(f"brokers: {broker_rm(broker_id)}")
+
+
+@emitter()
+def cli_broker_list(args):
+    from fwq.api import broker_list
+    print(f"brokers: {broker_list()}")
+
+
+@emitter()
+def cli_config_set(args):
+    from fwq.api import config_set
+    config_str = args.spec
+    config_item_key = args.id
+    config_item_value = args.value
+    config = config_set(config_str=config_str, config_item_key=config_item_key, config_item_value=config_item_value)
+    print(f"config: {config}")
+
+
+@emitter()
+def cli_config_get(args):
+    from fwq.api import config_get
+    config = config_get()
+    print(f"config: {config}")
+
+
+def cli_config_reset(args):
+    from fwq.api import config_reset
+    config = config_reset()
+    print(f"config: {config}")

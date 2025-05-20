@@ -2,30 +2,20 @@ import os
 
 from gwerks import emitter, is_dev_environment
 from gwerks.docker import DockerApp, DockerContext, DockerNetwork
+from fwq.constants import DOCKERFILE_BASE
 
 
-def parse_broker_str(broker: str):
-    broker_s = broker.split(":")
-    if len(broker_s) == 1:
-        broker_tpl = (broker_s[0], int(Broker.DEFAULT_PORT))
-    else:
-        broker_tpl = (broker_s[0], int(broker_s[1]))
-    return broker_tpl
+# def parse_broker_str(broker: str):
+#     broker_s = broker.split(":")
+#     if len(broker_s) == 1:
+#         broker_tpl = (broker_s[0], int(Broker.DEFAULT_PORT))
+#     else:
+#         broker_tpl = (broker_s[0], int(broker_s[1]))
+#     return broker_tpl
 
 
-@emitter()
+# @emitter()
 class Broker(DockerApp):
-
-    DOCKERFILE_BASE = ""
-    DOCKERFILE_BASE += "FROM python:bullseye\n"
-    DOCKERFILE_BASE += "RUN apt-get update\n"
-    DOCKERFILE_BASE += "RUN pip3 install --upgrade pip\n"
-    DOCKERFILE_BASE += "RUN pip3 --no-cache-dir install --upgrade awscli\n"
-    DOCKERFILE_BASE += "ARG AWS_DEFAULT_REGION\n"
-    DOCKERFILE_BASE += "ARG AWS_CONTAINER_CREDENTIALS_RELATIVE_URI\n"
-    DOCKERFILE_BASE += "ARG AWS_ACCESS_KEY_ID\n"
-    DOCKERFILE_BASE += "ARG AWS_SECRET_ACCESS_KEY\n"
-    DOCKERFILE_BASE += "RUN apt-get install beanstalkd\n"
 
     DOCKERFILE = DOCKERFILE_BASE
     DOCKERFILE += "RUN pip3 install fwq\n"
