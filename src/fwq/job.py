@@ -68,6 +68,12 @@ class JobSpec:
             "qed": self._qed
         }
 
+    def get_state(self) -> str:
+        return self._state
+
+    def set_state(self, state: str) -> None:
+        self._state = state
+
     def get_updated(self) -> str:
         return self._updated
 

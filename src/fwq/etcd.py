@@ -126,7 +126,10 @@ class EtcdClient:
         job_type = self._get(f"{detail_key}/type")
         name = self._get(f"{detail_key}/name")
         state = self._get(f"{detail_key}/state")
-        data = json.loads(self._get(f"{detail_key}/data"))
+        data_str = self._get(f"{detail_key}/data")
+        data = None
+        if data_str:
+            data = json.loads(data_str)
         updated = self._get(f"{detail_key}/updated")
         job_spec = JobSpec(job_id, job_type, name, state, data, updated)
 
@@ -150,6 +153,7 @@ class EtcdClient:
                 key_start = f"{list_key}/"
                 key_end = f"{list_key}0"
             job_kvs = self._get_range(key_start, key_end)
+            # print(f"job_kvs: {job_kvs}")
             for kv in job_kvs:
                 job_key_nfo = fwq.key.parser(kv.key, key_type="list")
                 job_ids.append({"job_key": kv.key, "updated": kv.value, "state": job_key_nfo.state, "job_id": job_key_nfo.job_id})
@@ -170,24 +174,26 @@ class EtcdClient:
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({"key": self._b64(key), "value": self._b64(value)})
         response = requests.post(f'{self._base_url}/put', headers=headers, data=payload)
+        # print(f"response.text: {response.text}")
         if not response.ok:
             raise Exception(f"etcd put ERROR: {response.text}")
 
     def _delete(self, key):
-        # print(f"key: {key}")
+        # print(f"_delete key: {key}")
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({"key": self._b64(key)})
-        # print(f"payload: {payload}")
         response = requests.post(f'{self._base_url}/deleterange', headers=headers, data=payload)
+        # print(f"response.text: {response.text}")
         if not response.ok:
             raise Exception(f"etcd delete ERROR: {response.text}")
 
     def _delete_range(self, key_start, key_end):
-        # print(f"key_start: {key_start}")
-        # print(f"key_end: {key_end}")
+        # print(f"_delete_range key_start: {key_start}")
+        # print(f"_delete_range key_end: {key_end}")
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({'key': self._b64(key_start), 'range_end': self._b64(key_end)})
         response = requests.post(f'{self._base_url}/deleterange', headers=headers, data=payload)
+        # print(f"response.text: {response.text}")
         if not response.ok:
             raise Exception(f"etcd delete_range ERROR: {response.text}")
 
@@ -196,6 +202,7 @@ class EtcdClient:
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({'key': self._b64(key)})
         response = requests.post(f'{self._base_url}/range', headers=headers, data=payload)
+        # print(f"response.text: {response.text}")
         if not response.ok:
             raise Exception(f"etcd get ERROR: {response.text}")
         json_obj = response.json()
@@ -217,6 +224,7 @@ class EtcdClient:
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({'key': self._b64(key_start), 'range_end': self._b64(key_end), 'limit': "0"})
         response = requests.post(f'{self._base_url}/range', headers=headers, data=payload)
+        # print(f"response.text: {response.text}")
         if not response.ok:
             raise Exception(f"etcd get ERROR: {response.text}")
         json_obj = response.json()
@@ -262,6 +270,7 @@ class Etcd(DockerBase):
 
 
 def get_etcd_client(broker_id, timeout_secs=10, retry_secs=1) -> EtcdClient:
+    # print(f"broker_id: {broker_id}")
     client = _clients.get(broker_id, None)
     if not client:
         for attempt in Retrying(reraise=True, stop=stop_after_delay(timeout_secs), wait=wait_fixed(retry_secs)):

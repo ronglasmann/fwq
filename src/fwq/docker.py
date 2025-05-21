@@ -19,10 +19,11 @@ class Network:
 
 # @emitter()
 class DockerBase:
-    def __init__(self, container_name, image_name, network: Network):
+    def __init__(self, container_name, image_name, network: Network, run_as = (os.getuid(), os.getgid())):
         self._container_name = container_name
         self._image_name = image_name
         self._network = network
+        self._run_as = run_as
 
         self._published_ports = []
         self._volume_mappings = []
@@ -63,6 +64,7 @@ class DockerBase:
             os.makedirs(v_map[0], exist_ok=True)
             cmd += f"--volume {v_map[0]}:{v_map[1]} "
         cmd += self._docker_run_log_driver()
+        cmd += f"--user {self._run_as[0]}:{self._run_as[1]} "
         cmd += f"{self._image_name} "
         if cmd_line:
             cmd += f"{cmd_line} "

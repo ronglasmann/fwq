@@ -46,7 +46,7 @@ def job_kick(broker_id, app, job_id=None, job_count=None):
     print(f"KICK {number_kicked} [broker_id: {broker_id}, app: {app}, job_id: {job_id}, job_count: {job_count}]")
 
 def job_touch(broker_id, app, job_id):
-    job_bs = _job_get(broker_id, app, job_id)[1]
+    job_bs = _job_get_bs(broker_id, app, job_id)
     if job_bs:
         beanstalk_client = fwq.beanstalkd.get_beanstalk_client(broker_id, app)
         beanstalk_client.touch(job_bs)
@@ -67,7 +67,7 @@ def job_cancel(broker_id, app, job_id):
 @emitter()
 def job_purge_completed(broker_id, app, older_than_secs):
     completed_jobs = job_list(broker_id, app, [JOB_STATE_DONE])
-    seconds_ago = now() - timedelta(seconds=older_than_secs)
+    seconds_ago = now() - timedelta(seconds=int(older_than_secs))
     print(f"PURGE COMPLETED more than {older_than_secs} seconds_ago, before: {seconds_ago}")
     for job in completed_jobs:
         job_datetime = datetime.strptime(job['updated'], DATETIME_FORMAT_W_MS)
@@ -80,7 +80,7 @@ def job_purge(broker_id, app, job_id):
     etcd_client = fwq.etcd.get_etcd_client(broker_id)
     etcd_client.delete_job_spec(app, job_id)
 
-    job_bs = _job_get(broker_id, app, job_id)[1]
+    job_bs = _job_get_bs(broker_id, app, job_id)
     if job_bs:
         beanstalk_client = fwq.beanstalkd.get_beanstalk_client(broker_id, app)
         beanstalk_client.delete(job_bs)
@@ -102,6 +102,7 @@ def job_do_next(broker_id, app, wait_secs):
 
 @emitter()
 def job_list(broker_id, app, job_states=None):
+    # print(f"broker_id: {broker_id}")
     etcd_client = fwq.etcd.get_etcd_client(broker_id)
     job_ids = etcd_client.list_job_briefs(app, states=job_states)
     return job_ids
@@ -109,26 +110,41 @@ def job_list(broker_id, app, job_states=None):
 
 @emitter()
 def job_get(broker_id, app, job_id):
-    return _job_get(broker_id, app, job_id)[0]
+    job_bs = _job_get_bs(broker_id, app, job_id)
+    job_etcd = _job_get_etcd(broker_id, app, job_id)
+    if job_etcd:
+        if job_bs:
+            job_etcd.set_qed(True)
+        else:
+            job_etcd.set_qed(False)
+            job_etcd.set_state(JOB_STATE_DONE)
+            etcd_client = fwq.etcd.get_etcd_client(broker_id)
+            etcd_client.update_job_state(app, job_id, JOB_STATE_DONE)
+    return job_etcd
 
 
-def _job_get(broker_id, app, job_id):
+def _job_get_etcd(broker_id, app, job_id):
     etcd_client = fwq.etcd.get_etcd_client(broker_id)
     job_spec = etcd_client.get_job_spec(app, job_id)
+    return job_spec
+
+def _job_get_bs(broker_id, app, job_id):
 
     beanstalk_client = fwq.beanstalkd.get_beanstalk_client(broker_id, app)
-    job_bs = None
+    # job_bs = None
     try:
-        job_bs = beanstalk_client.peek(int(job_id))
+        return beanstalk_client.peek(int(job_id))
+        # return job_bs
         # print(f"job_bs: {job_bs}")
-        job_spec.set_qed(True)
+        # job_spec.set_qed(True)
 
     except NotFoundError:
-        job_spec['state'] = JOB_STATE_DONE
-        job_spec.set_qed(False)
-        etcd_client.update_job_state(app, job_id, JOB_STATE_DONE)
+        return None
+        # job_spec.set_state(JOB_STATE_DONE)
+        # job_spec.set_qed(False)
+        # etcd_client.update_job_state(app, job_id, JOB_STATE_DONE)
 
-    return job_spec, job_bs
+    # return job_spec, job_bs
 
 
 @emitter()

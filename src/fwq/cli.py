@@ -42,6 +42,7 @@ def cli_fwq():
     parser.add_argument("-t", "--state", help="job state")
     parser.add_argument("-c", "--count", help="job count")
     parser.add_argument("-w", "--wait", help="wait time in seconds", default="60")
+    parser.add_argument("-o", "--older_than", help="time window in seconds", default="60")
 
     # Parse the arguments from the command line
     args = parser.parse_args()
@@ -104,7 +105,7 @@ def cli_job_purge(args):
     nfo = parser(args.id)
     if nfo.job_id:
         job_purge(nfo.broker_id, nfo.app, nfo.job_id)
-    else
+    else:
         job_purge_completed(nfo.broker_id, nfo.app, older_than_secs)
 
 @emitter()
@@ -129,6 +130,7 @@ def cli_job_do_next(args):
 def cli_job_list(args):
     from fwq.key import parser
     from fwq.api import job_list
+    print(f"args.id: {args.id}")
     nfo = parser(args.id)
     job_states = None  # meaning all states
     job_states_str = args.state

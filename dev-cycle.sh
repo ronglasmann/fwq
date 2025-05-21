@@ -34,4 +34,7 @@ python -m pip install  -e .
 #  docker logs -f "$APP"
 docker ps
 
+# run unit tests
+python -m pip install pytest
+
 pytest -s
