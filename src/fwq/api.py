@@ -6,9 +6,9 @@ from typing import Optional
 from greenstalk import NotFoundError
 from gwerks import fnow_w_ms, DATETIME_FORMAT_W_MS, now
 from gwerks.decorators import emitter
+from gwerks.docker import DockerSystem
 
 from fwq.job import JobSpec
-# from fwq.work_q import WorkQ
 from fwq.worker import Worker
 from fwq.constants import JOB_STATE_READY, JOB_STATE_DELAYED, CONFIG_DEFAULT, BROKERS_LIST_DEFAULT, \
     JOB_START_PERSISTENCE_DELAY_IN_SECS, JOB_STATE_DONE
@@ -16,9 +16,6 @@ from fwq.constants import JOB_STATE_READY, JOB_STATE_DELAYED, CONFIG_DEFAULT, BR
 import fwq.key
 import fwq.etcd
 import fwq.beanstalkd
-
-
-# from gwerks.docker import DockerNetwork, DockerContext
 
 
 CONF_CONFIG = "configuration"
@@ -213,30 +210,20 @@ def job_nq(job_spec: dict):
 # --------------------------------------------------------------------------- #
 
 @emitter()
-def broker_start():
+def sys_start():
     config = config_get()
-    beanstalkd = _get_beanstalkd(config)
-    etcd = _get_etcd(config)
-    etcd.start()
-    beanstalkd.start()
-    return {
-        "net_docker": {
-            "name": beanstalkd.get_container_name(),
-            "broker_id": f"{beanstalkd.get_container_name()}_{beanstalkd.get_port()}_{etcd.get_client_port()}"
-        },
-        "net_host": {
-            "broker_id": f"{beanstalkd.get_host_ip()}_{beanstalkd.get_port()}_{etcd.get_client_port()}"
-        }
-    }
+    fwq_sys = DockerSystem("fwq", apps=[_get_beanstalkd(config), _get_etcd(config)])
+    nfo = fwq_sys.start()
+    print(f"system nfo: {nfo}")
+    broker_id = f"{nfo['host']['ip']}_{nfo['Beanstalkd']}_{nfo['Etcd']}"
+    return broker_id
 
 
 @emitter()
-def broker_stop():
+def sys_stop():
     config = config_get()
-    beanstalkd = _get_beanstalkd(config)
-    etcd = _get_etcd(config)
-    beanstalkd.stop()
-    etcd.stop()
+    fwq_sys = DockerSystem("fwq", apps=[_get_beanstalkd(config), _get_etcd(config)])
+    fwq_sys.stop()
 
 
 def broker_add(broker_id):
@@ -328,12 +315,15 @@ def _get_etcd(config=None):
     from fwq.etcd import Etcd
     if not config:
         config = config_get()
-    container_name = f"{config['broker_name']}-etcd"
-    network = _get_network(config)
-    client_port = config['etcd_client_port']
-    peering_port = config['etcd_peering_port']
-    data_volume_host = config['etcd_data_volume_host']
-    return Etcd(container_name, network, client_port, peering_port, data_volume_host)
+    etcd_config = {
+        "container_name": f"{config['broker_name']}-etcd",
+        "network_name": f"{config['broker_name']}-net",
+        "network_driver": config['docker_network_driver'],
+        "data_volume_host": config['etcd_data_volume_host'],
+        "client_port": config['etcd_client_port'],
+        "peering_port": config['etcd_peering_port']
+    }
+    return Etcd(etcd_config)
 
 
 def _get_beanstalkd(config=None):
@@ -341,22 +331,16 @@ def _get_beanstalkd(config=None):
     if not config:
         config = config_get()
     # print(f"config: {config}")
-    container_name = f"{config['broker_name']}-beanstalkd"
-    network = _get_network(config)
-    addr = config['beanstalkd_addr']
-    port = config['beanstalkd_port']
-    data_volume_host = config['beanstalkd_binlog_host']
-    max_message_size = config['beanstalkd_max_message_size']
-    return Beanstalkd(container_name, network, addr, port, data_volume_host, max_message_size)
-
-
-def _get_network(config=None):
-    from fwq.docker import Network
-    if not config:
-        config = config_get()
-    network_name = f"{config['broker_name']}-net"
-    network_driver = config['docker_network_driver']
-    return Network(network_name, network_driver)
+    bs_config = {
+        "container_name": f"{config['broker_name']}-beanstalkd",
+        "network_name": f"{config['broker_name']}-net",
+        "network_driver": config['docker_network_driver'],
+        "data_volume_host": config['beanstalkd_binlog_host'],
+        "listen_addr": config['beanstalkd_addr'],
+        "port": config['beanstalkd_port'],
+        "max_message_size": config['beanstalkd_max_message_size']
+    }
+    return Beanstalkd(bs_config)
 
 
 def _save_broker_list(brokers):

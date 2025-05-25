@@ -32,13 +32,13 @@ def cli_fwq():
     parser = argparse.ArgumentParser(description="Fast Work Queue")
 
     # Add arguments
-    parser.add_argument("component", help="[config | broker | job | worker]")
+    parser.add_argument("component", help="[config | sys | broker | job | worker]")
     parser.add_argument("action", help="the component action")
     parser.add_argument("-d", "--debug", help="activate debug mode", action="store_true")
     parser.add_argument("-s", "--spec", help="component (config | job) specification")
     parser.add_argument("-i", "--id", help="component (broker | job | worker) identifier")
     parser.add_argument("-v", "--value", help="component value for identifier")
-    parser.add_argument("-a", "--app", help="job target application")
+    # parser.add_argument("-a", "--app", help="job target application")
     parser.add_argument("-t", "--state", help="job state")
     parser.add_argument("-c", "--count", help="job count")
     parser.add_argument("-w", "--wait", help="wait time in seconds", default="60")
@@ -155,18 +155,18 @@ def cli_job_nq(args):
 
 
 @emitter()
-def cli_broker_start(args):
-    from fwq.api import broker_start
-    print(f"broker nfo: {broker_start()}")
+def cli_sys_start(args):
+    from fwq.api import sys_start
+    print(f"broker nfo: {sys_start()}")
     # print(f"DockerNet: {beanstalkd.get_container_name()}_{beanstalkd.get_port()}_{etcd.get_client_port()}")
     # print(f"HostNet:   {beanstalkd.get_host_ip()}_{beanstalkd.get_port()}_{etcd.get_client_port()}")
 
 
 
 @emitter()
-def cli_broker_stop(args):
-    from fwq.api import broker_stop
-    broker_stop()
+def cli_sys_stop(args):
+    from fwq.api import sys_stop
+    sys_stop()
 
 
 @emitter()

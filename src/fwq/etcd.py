@@ -5,9 +5,10 @@ from typing import Optional
 
 import requests
 from gwerks import emitter, fnow_w_ms
+from gwerks.docker import DockerBase
 
 from fwq.constants import JOB_STATE_ALL
-from fwq.docker import DockerBase, Network
+# from fwq.docker import DockerBase
 import fwq.key
 from fwq.job import JobSpec
 
@@ -242,31 +243,39 @@ class EtcdClient:
 
 @emitter()
 class Etcd(DockerBase):
-    def __init__(self, container_name, network: Network, client_port="2379", peering_port="2380", data_volume_host=None):
-        super().__init__(container_name, "bitnami/etcd:latest", network)
+    def __init__(self, config):
+
+        # container_name, network: Network, client_port=, peering_port=, data_volume_host=None
+        config['image_name'] = "bitnami/etcd:latest"
+        if "port" not in config:
+            config["port"] = "2379"
+        super().__init__(config)
+
+        self._data_volume_host = None
+        if "data_volume_host" in config:
+            self._data_volume_host = config["data_volume_host"]
 
         self._data_volume = "/bitnami/etcd/data"
-        self._data_volume_host = data_volume_host
+        if "data_volume" in config:
+            self._data_volume = config["data_volume"]
 
-        self._client_port = client_port
-        self._peering_port = peering_port
-        self._published_ports.append(self._client_port)
+        self._peering_port = "2380"
+        if "peering_port" in config:
+            self._peering_port = config["peering_port"]
+
         self._published_ports.append(self._peering_port)
         if self._data_volume_host:
             self._volume_mappings.append([self._data_volume_host, self._data_volume])
 
-    def get_client_port(self):
-        return self._client_port
-
     def start(self):
-        self._docker_network_create()
+        # self.get_docker_network().create()
         env = ""
         env += f"--env ALLOW_NONE_AUTHENTICATION=yes "
-        env += f"--env ETCD_ADVERTISE_CLIENT_URLS=http://{self._container_name}:2379 "
-        self._docker_run(env_vars=env)
+        env += f"--env ETCD_ADVERTISE_CLIENT_URLS=http://{self.get_docker_container_name()}:2379 "
+        self.docker_run(env_vars=env)
 
     def stop(self):
-        self._docker_stop()
+        self.docker_stop()
 
 
 def get_etcd_client(broker_id, timeout_secs=10, retry_secs=1) -> EtcdClient:

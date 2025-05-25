@@ -17,7 +17,11 @@ dependencies = [
     "pyyaml",
     "greenstalk",
     "requests",
-    "uvicorn"
+    "Flask", "flask_login", "flask_cors",
+    "waitress",
+    "python-dotenv",
+    "setproctitle",
+    "pytz",
 ]
 
 [project.optional-dependencies]

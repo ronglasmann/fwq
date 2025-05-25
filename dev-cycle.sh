@@ -9,12 +9,8 @@ python -m pip config unset global.index-url || true
 python -m pip install --upgrade pip
 python -m pip install --upgrade build
 
-
-#fwq --action stop --name streamlit-fwq-broker || true
-#docker network rm $NET_NAME || true
-
-# set up a network for the broker, app, and workers
-#docker network create --driver bridge $NET_NAME
+# install the dev version of gwerks
+python -m pip install ../gwerks
 
 # install fwq and start the broker
 python -m pip install  -e .
@@ -36,5 +32,4 @@ docker ps
 
 # run unit tests
 python -m pip install pytest
-
 pytest -s

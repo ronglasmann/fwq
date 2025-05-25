@@ -1,6 +1,7 @@
 from gwerks import emitter
+# from gwerks.docker import DockerNetwork
 
-from fwq.docker import DockerBase, Network
+from gwerks.docker import DockerBase
 import fwq.key
 
 from greenstalk import Client, NotFoundError
@@ -44,27 +45,35 @@ def get_beanstalk_client(broker_id, app, reconnect=False, timeout_secs=10, retry
 
 @emitter()
 class Beanstalkd(DockerBase):
-    def __init__(self, container_name, network: Network, listen_addr="0.0.0.0", port="11300", data_volume_host=None,
-                 max_message_size="65535"):
-        super().__init__(container_name, "maateen/docker-beanstalkd", network)
+    def __init__(self, config):
 
-        self._addr = listen_addr
-        self._port = port
+        # container_name, network: Network, listen_addr=, port=, data_volume_host=None, max_message_size=
+        config['image_name'] = "maateen/docker-beanstalkd"
+        if "port" not in config:
+            config["port"] = "11300"
+        super().__init__(config)
+
+        self._addr = "0.0.0.0"
+        if "listen_addr" in config:
+            self._addr = config["listen_addr"]
 
         self._data_volume = "/data"
-        self._data_volume_host = data_volume_host
+        if "data_volume" in config:
+            self._data_volume = config["data_volume"]
 
-        self._max_message_size = max_message_size
+        self._data_volume_host = None
+        if "data_volume_host" in config:
+            self._data_volume_host = config["data_volume_host"]
 
-        self._published_ports.append(port)
+        self._max_message_size = "65535"
+        if "max_message_size" in config:
+            self._max_message_size = config["max_message_size"]
+
         if self._data_volume_host:
             self._volume_mappings.append([self._data_volume_host, self._data_volume])
 
-    def get_port(self):
-        return self._port
-
     def start(self):
-        self._docker_network_create()
+        # self.get_docker_network().create()
 
         cmd = ""
         cmd += f"-V "
@@ -76,7 +85,7 @@ class Beanstalkd(DockerBase):
         if self._max_message_size:
             cmd += f"-z {self._max_message_size} "
 
-        self._docker_run(cmd)
+        self.docker_run(cmd)
 
     def stop(self):
-        self._docker_stop()
+        self.docker_stop()

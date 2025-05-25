@@ -11,15 +11,15 @@ def broker_nfo():
     print("broker_nfo")
     config_set(config_item_key="beanstalkd_binlog_host", config_item_value="./data/beanstalkd")
     config_set(config_item_key="etcd_data_volume_host", config_item_value="./data/etcd")
-    yield broker_start()
-    broker_stop()
+    yield sys_start()
+    sys_stop()
     config_set(config_item_key="beanstalkd_binlog_host", config_item_value=None)
     config_set(config_item_key="etcd_data_volume_host", config_item_value=None)
 
 
 def test_run_job(broker_nfo):
     print("test_run_job")
-    broker_id = broker_nfo['net_host']['broker_id']
+    broker_id = broker_nfo
     app = "test"
     job_spec = {"job_type": "fwq.jobs.test_job", "broker_id": broker_id, "app": app}
     # print(f"job_spec: {job_spec}")
@@ -48,7 +48,7 @@ def test_run_job(broker_nfo):
 
 def test_list_jobs(broker_nfo):
     print("test_list_jobs")
-    broker_id = broker_nfo['net_host']['broker_id']
+    broker_id = broker_nfo
     app = "test"
 
     num_jobs_before = len(job_list(broker_id, app))
@@ -66,11 +66,11 @@ def test_list_jobs(broker_nfo):
 
 def test_purge_completed_jobs(broker_nfo):
     print("test_list_jobs")
-    broker_id = broker_nfo['net_host']['broker_id']
+    broker_id = broker_nfo
     app = "test"
 
-    print("sleep 6 seconds")
-    sleep(6)
+    print("sleep 7 seconds")
+    sleep(7)
 
     print("purge completed jobs older than 5 seconds")
     job_purge_completed(broker_id, app, 5)
