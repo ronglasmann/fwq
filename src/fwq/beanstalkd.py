@@ -1,3 +1,5 @@
+import os
+
 from gwerks import emitter
 # from gwerks.docker import DockerNetwork
 
@@ -60,10 +62,12 @@ class Beanstalkd(DockerBase):
         self._data_volume = "/data"
         if "data_volume" in config:
             self._data_volume = config["data_volume"]
+        # self._data_volume = os.path.abspath(self._data_volume)
 
         self._data_volume_host = None
         if "data_volume_host" in config:
             self._data_volume_host = config["data_volume_host"]
+        self._data_volume_host = f"{os.path.abspath(self._data_volume_host).replace("\\", "/")}"
 
         self._max_message_size = "65535"
         if "max_message_size" in config:

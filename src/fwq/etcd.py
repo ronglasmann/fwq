@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 from types import SimpleNamespace
 from typing import Optional
 
@@ -254,10 +255,13 @@ class Etcd(DockerBase):
         self._data_volume_host = None
         if "data_volume_host" in config:
             self._data_volume_host = config["data_volume_host"]
+        # self._data_volume_host = os.path.abspath(self._data_volume_host)
+        self._data_volume_host = f"{os.path.abspath(self._data_volume_host).replace("\\", "/")}"
 
         self._data_volume = "/bitnami/etcd/data"
         if "data_volume" in config:
             self._data_volume = config["data_volume"]
+        # self._data_volume = os.path.abspath(self._data_volume)
 
         self._peering_port = "2380"
         if "peering_port" in config:

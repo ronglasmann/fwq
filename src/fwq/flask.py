@@ -25,6 +25,7 @@ class FlaskApp:
         if "app_base" not in config:
             raise Exception(f"The app base has not been set")
         self._app_base = config["app_base"]
+        self._app_base = f"{os.path.abspath(self._app_base).replace("\\", " / ")}"
 
         if "process_app_name" not in config:
             raise Exception(f"The process app name has not been set")

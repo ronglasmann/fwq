@@ -9,8 +9,8 @@ from fwq.constants import JOB_STATE_DONE
 @pytest.fixture(scope="module")
 def broker_nfo():
     print("broker_nfo")
-    config_set(config_item_key="beanstalkd_binlog_host", config_item_value="./data/beanstalkd")
-    config_set(config_item_key="etcd_data_volume_host", config_item_value="./data/etcd")
+    config_set(config_item_key="beanstalkd_binlog_host", config_item_value="data/beanstalkd")
+    config_set(config_item_key="etcd_data_volume_host", config_item_value="data/etcd")
     yield sys_start()
     sys_stop()
     config_set(config_item_key="beanstalkd_binlog_host", config_item_value=None)
